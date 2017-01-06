@@ -11,18 +11,15 @@ the server-side code. This hack enables a client to specify a source line, and a
 expressions to be printed when you get there, and it also prints a stack trace at that
 point.
 
-Here is what a Python client call looks like.
+Here is what a Python use case looks like.
 
-    import requests
-    params={
-        'args': ['foo', 'bar'],
-        'break': [
-            'static/tryit.py:6:x',       # stop at line 6, print x
-            'static/tryit.py:8:z',       # stop at line 8, print z
-            'static/tryit.py:10:R,x'     # stop at line 10, print R and x
-        ],
-    }
-    r = requests.get("http://localhost:8080/tryit", params=params)
-    print r.text
+    print hack(
+        ['example.py', 'foo', 'bar'],
+        [
+            'example.py:5:x*',     # at line 5, print x and stack trace (asterisk)
+            'example.py:7:z',      # at line 7, print z
+            'example.py:9:R,x',    # at line 9, print R and x
+        ]
+    )
 
 The format of the output is pretty messy, but adequate for debugging.
