@@ -1,4 +1,5 @@
 import os
+import sys
 
 x = {'abc': 'def', 'ghi': ['jklmnopqrstuvwxyz', '1674740283710482340721', 'klasfj;djas;fjdshafldksjhfaa']}
 
@@ -8,4 +9,6 @@ def readfile(f):
     R += z
     return R[:-len(z)]
 
+for arg in sys.argv[1:]:
+	x['ghi'].append(arg)
 print readfile('static/tryit.html')

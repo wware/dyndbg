@@ -1,6 +1,7 @@
 import os
 import pexpect
 import pprint
+import re
 import sys
 import cStringIO
 
@@ -14,36 +15,52 @@ def hello():
         R.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     )
 
-def hack(brk, expr, script):
-    if not brk or not expr:
-        return os.popen("python " + script).read()
-    if len(expr) == 1 and "," in expr[0]:
-        expr = expr[0].split(",")
+def hack(brk, args, script):
+    cmd = script + " " + " ".join(args)
+    if not brk:
+        return os.popen("python " + cmd).read()
+
     log = cStringIO.StringIO()
     here = os.path.realpath(os.curdir)
-    child = pexpect.spawn("python -m pdb {0}".format(script))
+    child = pexpect.spawn("python -m pdb " + cmd)
     child.logfile = log
 
     def pdb(cmd):
         child.expect(r"\(Pdb\) ", timeout=1)
         child.sendline(cmd)
 
+    breakpoints = []
+    for b in brk:
+        m = re.search(r"([^:]*):([^:]*):([^:]*)", b)
+        if m:
+            def show(vbls=m.group(3).split(",")):
+                for v in vbls:
+                    pdb('pprint.pprint(' + v + ')')
+            breakpoints.append((
+                m.group(1) + "(" + m.group(2) + ")",
+                m.group(1) + ":" + m.group(2),
+                show
+            ))
+
     pdb("import pprint")
     pdb("import sys")
-    pdb("sys.path.append('{0}')".format(here))
-    pdb("b " + brk)
+    pdb("sys.path.append('" + here + "')")
+    for _, where, _ in breakpoints:
+        pdb("b " + where)
     pdb("c")
     while True:
         try:
-            child.expect('The program finished and will be restarted', timeout=1)
+            child.expect('The program finished and will be restarted', timeout=0.1)
             break
         except pexpect.TIMEOUT:
+            buf = child.buffer
             try:
-                pdb('print 40*"="')
+                pdb('print 40 * "="')
                 pdb('bt')
-                pdb('print 40*"-"')
-                for e in expr:
-                    pdb('pprint.pprint(' + e + ')')
+                pdb('print 40 * "-"')
+                for k, _, show in breakpoints:
+                    if k in buf:
+                        show()
                 pdb('c')
             except pexpect.TIMEOUT:
                 break
@@ -55,12 +72,20 @@ def hack(brk, expr, script):
 
 @app.route("/tryit")
 def tryit():
-    brk = request.args['break']
-    expr = request.args.getlist('expr')
-    return hack(brk, expr, "static/tryit.py")
+    brk = request.args.getlist('break')
+    args = request.args.getlist('args')
+    return hack(brk, args, "static/tryit.py")
 
 if __name__ == '__main__':
     if 'test' in sys.argv[1:]:
-        print hack('tryit.py:9', ['R', 'x'], 'static/tryit.py')
+        print hack(
+            [
+                'tryit.py:6:x',
+                'tryit.py:8:z',
+                'tryit.py:10:R,x',
+            ],
+            ['foo', 'bar'],
+            'static/tryit.py'
+        )
     else:
         app.run("0.0.0.0", 8080)
