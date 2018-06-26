@@ -1,10 +1,10 @@
-Dynamic debugger
+# Dynamic debugger for Python
 
 At my job, I maintain and extend a Buildbot system. I do a lot of debugging in the course of
 doing feature enhancements. A lot of that amounts to querying the values of variables at
 different points in Python scripts. These Python scripts are generally invoked using
-the Buildbot ShellCommand class. I haven't done all the digging, but I assume it's
-doing something like an os.popen or os.system call.
+the Buildbot `ShellCommand` class. I haven't done all the digging, but I assume it's
+doing something like an `os.popen` or `os.system` call.
 
 Here I am trying to set something up where I can invoke the PDB debugger without changing
 the server-side code. This hack enables a client to specify a source line, and a list of
